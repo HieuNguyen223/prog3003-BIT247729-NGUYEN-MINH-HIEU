@@ -1,0 +1,231 @@
+//bai 1
+
+public class Bai1_GenericMethod {
+
+    // Generic method
+    public static <E> void printArray(E[] array) {
+        for (E element : array) {
+            System.out.println(element);
+        }
+    }
+
+    public static void main(String[] args) {
+        Integer[] numbers = {1, 2, 3, 4, 5};
+        String[] words = {"Java", "Generic", "Method"};
+
+        System.out.println("Mảng Integer:");
+        printArray(numbers);
+
+        System.out.println("\nMảng String:");
+        printArray(words);
+    }
+}
+
+//bai 2
+interface MessageService {
+    void sendMessage(String message);
+}
+
+class EmailService implements MessageService {
+    @Override
+    public void sendMessage(String message) {
+        System.out.println("Gửi Email: " + message);
+    }
+}
+
+class SMSService implements MessageService {
+    @Override
+    public void sendMessage(String message) {
+        System.out.println("Gửi SMS: " + message);
+    }
+}
+
+class Notification {
+    private MessageService messageService;
+
+    // Setter Injection
+    public void setMessageService(MessageService messageService) {
+        this.messageService = messageService;
+    }
+
+    public void notifyUser(String message) {
+        if (messageService == null) {
+            System.out.println("MessageService chưa được thiết lập.");
+            return;
+        }
+        messageService.sendMessage(message);
+    }
+}
+
+public class Bai2_SetterInjection {
+    public static void main(String[] args) {
+        Notification notification = new Notification();
+
+        // Inject EmailService
+        notification.setMessageService(new EmailService());
+        notification.notifyUser("Xin chào qua Email!");
+
+        // Inject SMSService
+        notification.setMessageService(new SMSService());
+        notification.notifyUser("Xin chào qua SMS!");
+    }
+}
+
+//bai 3 
+import java.util.*;
+import java.util.stream.Collectors;
+
+class Employee {
+    private int id;
+    private String name;
+    private double salary;
+
+    public Employee(int id, String name, double salary) {
+        this.id = id;
+        this.name = name;
+        this.salary = salary;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public double getSalary() {
+        return salary;
+    }
+}
+
+public class Bai3_StreamCollectors {
+    public static void main(String[] args) {
+        List<Employee> employees = Arrays.asList(
+                new Employee(1, "An", 900),
+                new Employee(2, "Binh", 1500),
+                new Employee(3, "Cuong", 1200),
+                new Employee(4, "Dung", 800)
+        );
+
+        List<String> result = employees.stream()
+                .filter(emp -> emp.getSalary() > 1000)   // lương > 1000
+                .map(Employee::getName)                  // lấy tên
+                .sorted()                                // sắp xếp alpha-beta
+                .collect(Collectors.toList());           // gom về List
+
+        System.out.println("Danh sách tên nhân viên có lương > 1000:");
+        result.forEach(System.out::println);
+    }
+}
+
+//bai 4
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
+public class CalculatorApp extends JFrame implements ActionListener {
+
+    private JTextField display;
+    private String operator = "";
+    private double num1 = 0, num2 = 0;
+
+    public CalculatorApp() {
+        setTitle("Calculator");
+        setSize(350, 500);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+        setLayout(new BorderLayout(10, 10));
+
+        display = new JTextField();
+        display.setFont(new Font("Arial", Font.BOLD, 28));
+        display.setHorizontalAlignment(JTextField.RIGHT);
+        display.setEditable(false);
+        add(display, BorderLayout.NORTH);
+
+        JPanel panel = new JPanel();
+        panel.setLayout(new GridLayout(5, 4, 10, 10));
+
+        String[] buttons = {
+                "7", "8", "9", "/",
+                "4", "5", "6", "*",
+                "1", "2", "3", "-",
+                "0", ".", "=", "+",
+                "C", "(", ")", "%"
+        };
+
+        for (String text : buttons) {
+            JButton btn = new JButton(text);
+            btn.setFont(new Font("Arial", Font.BOLD, 20));
+            btn.addActionListener(this);
+            panel.add(btn);
+        }
+
+        add(panel, BorderLayout.CENTER);
+        setVisible(true);
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        String command = e.getActionCommand();
+
+        if (command.matches("[0-9\\.]")) {
+            display.setText(display.getText() + command);
+        } else if (command.matches("[+\\-*/%]")) {
+            try {
+                num1 = Double.parseDouble(display.getText());
+                operator = command;
+                display.setText("");
+            } catch (Exception ex) {
+                display.setText("Lỗi");
+            }
+        } else if (command.equals("=")) {
+            try {
+                num2 = Double.parseDouble(display.getText());
+                double result = 0;
+
+                switch (operator) {
+                    case "+":
+                        result = num1 + num2;
+                        break;
+                    case "-":
+                        result = num1 - num2;
+                        break;
+                    case "*":
+                        result = num1 * num2;
+                        break;
+                    case "/":
+                        if (num2 == 0) {
+                            display.setText("Không chia cho 0");
+                            return;
+                        }
+                        result = num1 / num2;
+                        break;
+                    case "%":
+                        result = num1 % num2;
+                        break;
+                    default:
+                        display.setText("Lỗi");
+                        return;
+                }
+
+                display.setText(String.valueOf(result));
+            } catch (Exception ex) {
+                display.setText("Lỗi");
+            }
+        } else if (command.equals("C")) {
+            display.setText("");
+            num1 = 0;
+            num2 = 0;
+            operator = "";
+        } else {
+            // Tạm thời chưa xử lý dấu ngoặc
+            JOptionPane.showMessageDialog(this, "Chức năng này chưa hỗ trợ.");
+        }
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(CalculatorApp::new);
+    }
+}
