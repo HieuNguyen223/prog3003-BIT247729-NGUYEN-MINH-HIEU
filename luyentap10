@@ -1,0 +1,155 @@
+//bai 1
+import java.util.HashMap;
+
+public class Bai1_HashMap {
+    public static void main(String[] args) {
+        // 1. Tạo HashMap<Integer, String>
+        HashMap<Integer, String> employees = new HashMap<>();
+
+        // 2. Thêm 3 nhân viên
+        employees.put(101, "Anna");
+        employees.put(102, "Peter");
+        employees.put(103, "Mary");
+
+        // 3. Lấy tên nhân viên có ID 102
+        String name102 = employees.get(102);
+        System.out.println("Nhân viên có ID 102: " + name102);
+
+        // 4. Kiểm tra ID 105 có tồn tại không
+        if (!employees.containsKey(105)) {
+            employees.put(105, "Unknown");
+        }
+
+        System.out.println("Danh sách nhân viên:");
+        for (Integer id : employees.keySet()) {
+            System.out.println(id + " - " + employees.get(id));
+        }
+    }
+}
+
+//bai 2
+interface MediaPlayer {
+    void play(String audioType, String fileName);
+}
+
+interface AdvancedMediaPlayer {
+    void playVlc(String fileName);
+}
+
+class VlcPlayer implements AdvancedMediaPlayer {
+    @Override
+    public void playVlc(String fileName) {
+        System.out.println("Đang phát file VLC: " + fileName);
+    }
+}
+
+class MediaAdapter implements MediaPlayer {
+    private VlcPlayer vlcPlayer;
+
+    public MediaAdapter() {
+        vlcPlayer = new VlcPlayer();
+    }
+
+    @Override
+    public void play(String audioType, String fileName) {
+        if (audioType.equalsIgnoreCase("vlc")) {
+            vlcPlayer.playVlc(fileName);
+        } else if (audioType.equalsIgnoreCase("mp3")) {
+            System.out.println("Đang phát file MP3: " + fileName);
+        } else {
+            System.out.println("Định dạng không hỗ trợ: " + audioType);
+        }
+    }
+}
+
+public class Bai2_AdapterPattern {
+    public static void main(String[] args) {
+        MediaPlayer player = new MediaAdapter();
+
+        player.play("mp3", "song.mp3");
+        player.play("vlc", "movie.vlc");
+        player.play("mp4", "video.mp4");
+    }
+}
+
+//bai3
+class WorkerThread extends Thread {
+    @Override
+    public void run() {
+        System.out.println("Thread đang chạy...");
+    }
+}
+
+class WorkerRunnable implements Runnable {
+    @Override
+    public void run() {
+        System.out.println("Runnable đang chạy...");
+    }
+}
+
+public class Bai3_ThreadRunnable {
+    public static void main(String[] args) {
+        WorkerThread thread1 = new WorkerThread();
+        WorkerRunnable runnable = new WorkerRunnable();
+        Thread thread2 = new Thread(runnable);
+
+        thread1.start();
+        thread2.start();
+    }
+}
+
+//bai 4
+import javafx.application.Application;
+import javafx.geometry.Insets;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.layout.GridPane;
+import javafx.stage.Stage;
+
+public class Bai4_CongHaiSo extends Application {
+
+    @Override
+    public void start(Stage primaryStage) {
+        Label lblSo1 = new Label("Số thứ nhất:");
+        Label lblSo2 = new Label("Số thứ hai:");
+        Label lblKetQua = new Label("Kết quả");
+        
+        TextField txtSo1 = new TextField();
+        TextField txtSo2 = new TextField();
+        Button btnTinhTong = new Button("Tính tổng");
+
+        GridPane grid = new GridPane();
+        grid.setPadding(new Insets(15));
+        grid.setHgap(10);
+        grid.setVgap(10);
+
+        grid.add(lblSo1, 0, 0);
+        grid.add(txtSo1, 1, 0);
+
+        grid.add(lblSo2, 0, 1);
+        grid.add(txtSo2, 1, 1);
+
+        grid.add(btnTinhTong, 0, 2);
+        grid.add(lblKetQua, 1, 2);
+
+        btnTinhTong.setOnAction(e -> {
+            try {
+                double so1 = Double.parseDouble(txtSo1.getText());
+                double so2 = Double.parseDouble(txtSo2.getText());
+                double tong = so1 + so2;
+                lblKetQua.setText("Kết quả: " + tong);
+            } catch (NumberFormatException ex) {
+                lblKetQua.setText("Lỗi!");
+            }
+        });
+
+        Scene scene = new Scene(grid, 350, 180);
+        primaryStage.setTitle("Máy Tính Cộng Hai Số");
+        primaryStage.setScene(scene);
+        primaryStage.show();
+    }
+
+    public static void main(String[] args) {
+        launch(args);
+    }
+}
