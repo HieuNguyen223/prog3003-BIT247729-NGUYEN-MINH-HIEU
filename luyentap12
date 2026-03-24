@@ -1,0 +1,224 @@
+//luyen tap 12
+@FunctionalInterface
+interface MathOperation {
+    int compute(int a, int b);
+}
+
+public class Main {
+    public static void main(String[] args) {
+        MathOperation add = (a, b) -> a + b;
+        MathOperation subtract = (a, b) -> a - b;
+        MathOperation multiply = (a, b) -> a * b;
+        MathOperation divide = (a, b) -> {
+            if (b == 0) {
+                throw new ArithmeticException("Không thể chia cho 0");
+            }
+            return a / b;
+        };
+
+        int a = 10;
+        int b = 5;
+
+        System.out.println("Cộng: " + a + " + " + b + " = " + add.compute(a, b));
+        System.out.println("Trừ: " + a + " - " + b + " = " + subtract.compute(a, b));
+        System.out.println("Nhân: " + a + " * " + b + " = " + multiply.compute(a, b));
+        System.out.println("Chia: " + a + " / " + b + " = " + divide.compute(a, b));
+    }
+}
+
+import com.google.gson.Gson;
+import javafx.application.Application;
+import javafx.application.Platform;
+import javafx.geometry.Insets;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
+import javafx.stage.Stage;
+import org.java_websocket.WebSocket;
+import org.java_websocket.client.WebSocketClient;
+import org.java_websocket.handshake.ClientHandshake;
+import org.java_websocket.handshake.ServerHandshake;
+import org.java_websocket.server.WebSocketServer;
+
+import java.net.InetSocketAddress;
+import java.net.URI;
+
+public class LocalChatApp extends Application {
+
+    private static final int PORT = 8080;
+    private static ChatServer server;
+
+    private final TextArea chatArea = new TextArea();
+    private final TextField nameField = new TextField();
+    private final TextField messageField = new TextField();
+    private final Button connectButton = new Button("Kết nối");
+    private final Button sendButton = new Button("Gửi");
+
+    private WebSocketClient client;
+    private final Gson gson = new Gson();
+
+    public static class Message {
+        private String sender;
+        private String content;
+
+        public Message() {
+        }
+
+        public Message(String sender, String content) {
+            this.sender = sender;
+            this.content = content;
+        }
+
+        public String getSender() {
+            return sender;
+        }
+
+        public String getContent() {
+            return content;
+        }
+    }
+
+    public static class ChatServer extends WebSocketServer {
+        public ChatServer(int port) {
+            super(new InetSocketAddress(port));
+        }
+
+        @Override
+        public void onOpen(WebSocket conn, ClientHandshake handshake) {
+            System.out.println("Client kết nối: " + conn.getRemoteSocketAddress());
+        }
+
+        @Override
+        public void onClose(WebSocket conn, int code, String reason, boolean remote) {
+            System.out.println("Client ngắt kết nối: " + conn.getRemoteSocketAddress());
+        }
+
+        @Override
+        public void onMessage(WebSocket conn, String message) {
+            for (WebSocket socket : getConnections()) {
+                if (socket != conn) {
+                    socket.send(message);
+                }
+            }
+        }
+
+        @Override
+        public void onError(WebSocket conn, Exception ex) {
+            System.out.println("Lỗi server: " + ex.getMessage());
+        }
+
+        @Override
+        public void onStart() {
+            System.out.println("Server đang chạy tại ws://localhost:" + PORT);
+        }
+    }
+
+    @Override
+    public void start(Stage stage) {
+        if (server == null) {
+            server = new ChatServer(PORT);
+            server.start();
+        }
+
+        chatArea.setEditable(false);
+        chatArea.setWrapText(true);
+
+        nameField.setPromptText("Nhập tên");
+        messageField.setPromptText("Nhập tin nhắn");
+
+        connectButton.setOnAction(e -> connectToServer());
+        sendButton.setOnAction(e -> sendMessage());
+
+        HBox topBox = new HBox(10, new Label("Tên:"), nameField, connectButton);
+        HBox.setHgrow(nameField, Priority.ALWAYS);
+
+        HBox bottomBox = new HBox(10, messageField, sendButton);
+        HBox.setHgrow(messageField, Priority.ALWAYS);
+
+        VBox root = new VBox(10, topBox, chatArea, bottomBox);
+        root.setPadding(new Insets(10));
+
+        Scene scene = new Scene(root, 500, 400);
+        stage.setTitle("Chat Local - JavaFX + WebSocket");
+        stage.setScene(scene);
+        stage.show();
+    }
+
+    private void connectToServer() {
+        String username = nameField.getText().trim();
+
+        if (username.isEmpty()) {
+            showAlert("Lỗi", "Vui lòng nhập tên.");
+            return;
+        }
+
+        try {
+            client = new WebSocketClient(new URI("ws://localhost:" + PORT)) {
+                @Override
+                public void onOpen(ServerHandshake handshakedata) {
+                    Platform.runLater(() -> {
+                        chatArea.appendText("Đã kết nối tới server\n");
+                        connectButton.setDisable(true);
+                        nameField.setDisable(true);
+                    });
+                }
+
+                @Override
+                public void onMessage(String message) {
+                    Message msg = gson.fromJson(message, Message.class);
+                    Platform.runLater(() ->
+                            chatArea.appendText(msg.getSender() + ": " + msg.getContent() + "\n")
+                    );
+                }
+
+                @Override
+                public void onClose(int code, String reason, boolean remote) {
+                    Platform.runLater(() -> chatArea.appendText("Đã ngắt kết nối\n"));
+                }
+
+                @Override
+                public void onError(Exception ex) {
+                    Platform.runLater(() -> chatArea.appendText("Lỗi: " + ex.getMessage() + "\n"));
+                }
+            };
+
+            client.connect();
+
+        } catch (Exception e) {
+            showAlert("Lỗi", e.getMessage());
+        }
+    }
+
+    private void sendMessage() {
+        if (client == null || !client.isOpen()) {
+            showAlert("Thông báo", "Bạn chưa kết nối server.");
+            return;
+        }
+
+        String sender = nameField.getText().trim();
+        String content = messageField.getText().trim();
+
+        if (content.isEmpty()) {
+            return;
+        }
+
+        Message msg = new Message(sender, content);
+        String json = gson.toJson(msg);
+
+        client.send(json);
+        chatArea.appendText("Tôi: " + content + "\n");
+        messageField.clear();
+    }
+
+    private void showAlert(String title, String content) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(content);
+        alert.showAndWait();
+    }
+
+    public static void main(String[] args) {
+        launch(args);
+    }
+}
